@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.utils import get_column_letter
+from io import BytesIO
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -204,6 +205,7 @@ def export():
     problems = c.fetchall()
     conn.close()
 
+    # Create an in-memory workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "Problem Report"
@@ -214,17 +216,13 @@ def export():
     for row_index, problem in enumerate(problems, start=2):
         ws.append([problem[0], problem[1], problem[2], "", problem[4], problem[5], problem[6], problem[7]])
 
-        image_filename = problem[3]
-        if image_filename:
-            image_path = os.path.join(app.config["UPLOAD_FOLDER"], image_filename)
-            if os.path.exists(image_path):
-                img = ExcelImage(image_path)
-                img.width, img.height = 100, 75
-                ws.add_image(img, f"D{row_index}")
+    # Save the file in memory
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)  # Move pointer back to the beginning
 
-    filepath = "problem_report.xlsx"
-    wb.save(filepath)
-    return send_file(filepath, as_attachment=True)
+    return send_file(output, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                     as_attachment=True, download_name="problem_report.xlsx")
 
 # ✅ Dashboard Data API
 @app.route("/dashboard_data")
