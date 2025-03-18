@@ -3,3 +3,4 @@ requests
 apscheduler
 openpyxl
 gunicorn
+Pillow 
